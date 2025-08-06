@@ -1,6 +1,7 @@
 import datetime
 from aiogram.utils import markdown
 from dateutil.relativedelta import relativedelta
+from aiogram import Bot, types
 
 
 STARTUP = markdown.text(
@@ -14,7 +15,7 @@ SHUTDOWN = markdown.text(
         datetime.datetime.now(), "%Y\\-%m\\-%d %H\\:%M\\:%S"))
 
 
-GUIDE_URL = "https://warp-vless.vercel.app/"
+GUIDE_URL = "https\\://warp\\-vless\\.vercel\\.app/"
 
 MONTHS = {
     1:  "января",
@@ -33,27 +34,29 @@ MONTHS = {
 
 MAIN_INACTIVE = markdown.text(
     "Привет\\!",
-    "С помощью этого бота ты можешь получить ASTRACATVPN\\.",
+    "Чтобы получить бесплатную подписку, подпишись на наш канал:",
+    "https\\://t\\.me/astracatui",
     "",
-    "_\\(Разработка ТГК ASTRACATUI\\)_",
+    "Подписка абсолютно бесплатная\\.",
+    "По всем вопросам пиши в личные сообщения @astracatui\\.",
     sep="\n"
 )
 
 PAYMENT_INFO = markdown.text(
-    "Для получения введите команду \\/buy и через пробел целым числом укажите количество дней\\.",
-    "Один день подписки \\- Бесплатно\\.",
+    "Для покупки введите команду \\/buy и через пробел целым числом укажите количество дней\\.",
+    "Один день подписки \\- одна звезда\\.",
     sep="\n"
 )
 
-PAYMENT_UNAVAILABLE_ALREADY_SUBSCRIBED = "Вы не можете получить подписку\\, так как она у вас уже активна\\."
+PAYMENT_UNAVAILABLE_ALREADY_SUBSCRIBED = "Вы не можете купить подписку\\, так как она у вас уже активна\\."
 
 PAYMENT_WRONG_INPUT = "Через пробел необходимо указать целое число \\- желаемую длительность подписки в днях\\. Попробуйте еще раз\\."
 
-PAYMENT_PROCESSED_SUCCESS = "Ответ произведена успешно\\."
+PAYMENT_PROCESSED_SUCCESS = "Оплата произведена успешно\\."
 
 PAYMENT_PROCESSED_FAIL = "Возникла ошибка при попытке оплаты\\. Если вы считаете\\, что это ошибка\\, свяжитесь с поддержкой\\."
 
-HELP = "По любым вопросам писать \\@astracatui\\."
+HELP = "По всем вопросам пиши в личные сообщения @astracatui"
 
 UNKNOWN_QUERY = "Неизвестный запрос\\. Проверьте корректность ввода и попробуйте снова\\."
 
@@ -109,7 +112,8 @@ def pretty_date(
     date_pretty, time_pretty = date[:16].split("T")
     date_pretty = date_pretty.split("-")[::-1]
     time_pretty = time_pretty.replace(":", "\\:")
-    result = f"{str(int(date_pretty[0]))} {MONTHS[int(date_pretty[1])]} {date_pretty[2]}\\, {time_pretty}"
+    # Исправлено: убрано лишнее экранирование запятой
+    result = f"{str(int(date_pretty[0]))} {MONTHS[int(date_pretty[1])]} {date_pretty[2]}, {time_pretty}"
     return result
 
 
@@ -151,7 +155,7 @@ def pretty_duration(
 
 
 def gen_main_subscribed(
-    expires_at:       str,
+    expires_at:         str,
 ) -> str:
     text = markdown.text(
         "Подписка активна\\.",
@@ -160,3 +164,26 @@ def gen_main_subscribed(
         sep="\n"
     )
     return text
+
+# Пример исправленной функции, где была ошибка
+async def successful_payment(message: types.Message, bot: Bot):
+    user_id = message.from_user.id
+    payment_star_count = message.successful_payment.total_amount
+    new_expires_at = datetime.datetime.now() + datetime.timedelta(days=payment_star_count)
+    
+    # Исправлено: используем bot.send_message() вместо message.answer()
+    await bot.send_message(
+        chat_id=message.chat.id,
+        text=PAYMENT_PROCESSED_SUCCESS,
+        parse_mode="MarkdownV2"
+    )
+    
+    await bot.send_message(
+        chat_id=message.chat.id,
+        text=markdown.text(
+            f"Спасибо за покупку, Ваша подписка на {payment_star_count} дня активирована\\.",
+            f"Срок действия подписки\\: до {pretty_date(new_expires_at.isoformat())}",
+            sep="\n"
+        ),
+        parse_mode="MarkdownV2"
+    )
