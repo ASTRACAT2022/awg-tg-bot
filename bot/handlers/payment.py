@@ -22,6 +22,7 @@ async def cmd_buy(
     message: types.Message,
     expires_at: str | None = None,
 ):
+    # Проверяем, есть ли у пользователя уже активная подписка
     is_subscribed = expires_at is not None
     if is_subscribed:
         await message.reply(
@@ -30,27 +31,37 @@ async def cmd_buy(
         )
         return
 
-    parts = message.text.split()
+    # Задаем количество дней для бесплатной подписки.
+    # Ты можешь изменить это значение на любое другое.
+    free_days = 30
 
-    if len(parts) != 2:
-        await message.answer(
-            event=message,
-            text=messages.PAYMENT_WRONG_INPUT,
-            reply_markup=gen_inline()
-        )
-        return
+    # Создаем фиктивный объект `SuccessfulPayment`, чтобы имитировать успешную оплату.
+    # Это позволяет нам использовать твою функцию `successful_payment` без изменений.
+    mock_successful_payment = types.SuccessfulPayment(
+        currency="XTR",
+        total_amount=free_days,
+        invoice_payload="free_subscription",  # Можно использовать любое значение
+        telegram_payment_charge_id="mock_charge_id",
+        provider_payment_charge_id="mock_provider_charge_id"
+    )
 
-    amount = int(parts[1])
+    # Создаем фиктивное сообщение, которое будет содержать наш фейковый платеж.
+    mock_message = types.Message(
+        message_id=message.message_id,
+        chat=message.chat,
+        from_user=message.from_user,
+        date=message.date,
+        text=message.text,
+        successful_payment=mock_successful_payment
+    )
 
-    prices = [types.LabeledPrice(label="XTR", amount=amount)]
-    payload = f"{amount}_days"
+    # Напрямую вызываем функцию `successful_payment`, которая активирует подписку.
+    await successful_payment(message=mock_message, bot=message.bot)
 
-    message = await message.answer_invoice(
-        title="Subscription payment",
-        description=f"Оплата подписки на {amount} дней.",
-        prices=prices,
-        payload=payload,
-        currency="XTR"
+    # Сообщаем пользователю, что подписка активирована бесплатно.
+    await message.answer(
+        text=f"Поздравляем! Ваша подписка на {free_days} дней активирована бесплатно.",
+        reply_markup=gen_inline()
     )
 
 
@@ -58,6 +69,8 @@ async def pre_checkout_query(
     query: types.PreCheckoutQuery,
     bot: Bot
 ):
+    # Эта функция больше не будет вызываться, так как мы пропускаем этап оплаты,
+    # но оставляем ее на случай, если ты захочешь вернуть платежи.
     await bot.answer_pre_checkout_query(query.id, ok=True)
 
 
